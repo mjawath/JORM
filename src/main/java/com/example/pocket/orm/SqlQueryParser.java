@@ -1,8 +1,5 @@
 package com.example.pocket.orm;
 
-import com.example.pocket.orm.EntityMetadata;
-import com.example.pocket.orm.FieldMetadata;
-
 import java.util.*;
 
 /**
@@ -280,4 +277,93 @@ public class SqlQueryParser {
     private String repeat(String token, int count) {
         return String.join(",", Collections.nCopies(count, token));
     }
+
+    /**
+     * Builds an ordered insert plan (list of ParsedSql) for nested input maps.
+     * Master/parent entities are emitted before their children so inserted PKs can be propagated.
+     *
+     * Input map may contain nested Map or List<Map> values for child relations. Child fields must be declared
+     * in metadata with foreign key references pointing to the parent's table/column.
+     *
+     * Returns a list of ParsedSql objects in the order they should be executed.
+     */
+    public List<ParsedSql> buildInsertPlan(String entityName, Map<String,Object> input) {
+        List<ParsedSql> plan = new ArrayList<>();
+        Map<String,Object> generatedIds = new HashMap<>();
+        buildInsertPlanRec(entityName, input, plan, generatedIds, null);
+        return plan;
+    }
+
+    private void buildInsertPlanRec(String entityName, Map<String,Object> input, List<ParsedSql> plan, Map<String,Object> generatedIds, String parentRefColumn) {
+        EntityMetadata meta = requireMeta(entityName);
+        // Ensure PK exists
+        FieldMetadata pkField = meta.getFields().stream().filter(FieldMetadata::isPrimaryKey).findFirst().orElse(null);
+        if (pkField == null) throw new IllegalStateException("Entity " + entityName + " has no primary key");
+        if (!input.containsKey(pkField.getFieldName()) || input.get(pkField.getFieldName()) == null) {
+            Object newId = generateId();
+            input.put(pkField.getFieldName(), newId);
+            generatedIds.put(entityName + ":" + pkField.getFieldName(), newId);
+        }
+
+        // If parentRefColumn is provided, set the FK field(s) that point to that parent
+        if (parentRefColumn != null) {
+            for (FieldMetadata f : meta.getFields()) {
+                if (parentRefColumn.equals(f.getForeignKeyReferenceColumn()) || parentRefColumn.equals(f.getForeignKeyReferenceTable())) {
+                    // if child expects parent id under a different logical field name, try to set it
+                    if (!input.containsKey(f.getFieldName())) {
+                        // try parent id lookup
+                        Object parentId = generatedIds.get(entityName + ":" + f.getFieldName());
+                        if (parentId != null) input.put(f.getFieldName(), parentId);
+                    }
+                }
+            }
+        }
+
+        // Build this entity's insert SQL and append to plan
+        ParsedSql thisInsert = buildInsertFromMap(entityName, input);
+        plan.add(thisInsert);
+
+        // Now discover nested children: any field in input which is Map or List<Map>
+        for (Map.Entry<String,Object> e : new ArrayList<>(input.entrySet())) {
+            Object v = e.getValue();
+            if (v instanceof Map) {
+                // Child entity name must be inferable: assume the fieldName equals child entity name
+                @SuppressWarnings("unchecked")
+                Map<String,Object> childMap = (Map<String,Object>) v;
+                String childEntityName = e.getKey();
+                // Propagate parent's PK into child's FK fields when their FK metadata points to this meta
+                EntityMetadata childMeta = metadataMap.get(childEntityName);
+                if (childMeta != null) {
+                    FieldMetadata childFk = childMeta.getFields().stream().filter(fm -> {
+                        return meta.getTableName().equals(fm.getForeignKeyReferenceTable()) || meta.getPrimaryKeyColumn().equals(fm.getForeignKeyReferenceColumn());
+                    }).findFirst().orElse(null);
+                    if (childFk != null && !childMap.containsKey(childFk.getFieldName())) {
+                        childMap.put(childFk.getFieldName(), input.get(pkField.getFieldName()));
+                    }
+                }
+                buildInsertPlanRec(childEntityName, childMap, plan, generatedIds, pkField.getFieldName());
+            } else if (v instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> list = (List<Object>) v;
+                for (Object item : list) {
+                    if (item instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String,Object> childMap = (Map<String,Object>) item;
+                        String childEntityName = e.getKey();
+                        EntityMetadata childMeta = metadataMap.get(childEntityName);
+                        if (childMeta != null) {
+                            FieldMetadata childFk = childMeta.getFields().stream().filter(fm -> {
+                                return meta.getTableName().equals(fm.getForeignKeyReferenceTable()) || meta.getPrimaryKeyColumn().equals(fm.getForeignKeyReferenceColumn());
+                            }).findFirst().orElse(null);
+                            if (childFk != null && !childMap.containsKey(childFk.getFieldName())) {
+                                childMap.put(childFk.getFieldName(), input.get(pkField.getFieldName()));
+                            }
+                        }
+                        buildInsertPlanRec(childEntityName, childMap, plan, generatedIds, pkField.getFieldName());
+                    }
+                }
+            }
+        }
+    }
+
 }

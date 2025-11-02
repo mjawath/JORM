@@ -3,6 +3,13 @@ C:\development\myproj\pocket\src\main\java\com\example\pocket\exception\NotFound
 C:\development\myproj\pocket\src\main\java\com\example\pocket\model\CollectionDef.java
 C:\development\myproj\pocket\src\main\java\com\example\pocket\model\EndpointDef.java
 C:\development\myproj\pocket\src\main\java\com\example\pocket\model\RecordEntry.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\EntityManager.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\EntityMetadata.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\ExecutorsProvider.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\FieldMetadata.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\QueryContext.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\QueryExecutor.java
+C:\development\myproj\pocket\src\main\java\com\example\pocket\orm\SqlQueryParser.java
 C:\development\myproj\pocket\src\main\java\com\example\pocket\PocketApplication.java
 C:\development\myproj\pocket\src\main\java\com\example\pocket\repository\CollectionRepository.java
 C:\development\myproj\pocket\src\main\java\com\example\pocket\repository\EndpointRepository.java
