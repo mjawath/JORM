@@ -1,0 +1,75 @@
+[
+
+{
+  "entityClass": "com.mycompany.posswing.model.Sku",
+  "tableName": "sku",
+  "primaryKey": "id",
+  "autoIncrement": true,
+  "fields": [
+    {
+      "field": "id",
+      "columnName": "id",
+      "columnType": "INTEGER",
+      "nullable": false
+    },
+    {
+      "field": "productId",
+      "columnName": "product_id",
+      "columnType": "TEXT",
+      "nullable": true
+    },
+    {
+      "field": "code",
+      "columnName": "code",
+      "columnType": "TEXT",
+      "nullable": true
+    },
+    {
+      "field": "name",
+      "columnName": "name",
+      "columnType": "TEXT",
+      "nullable": false
+    },
+    {
+      "field": "stock",
+      "columnName": "stock",
+      "columnType": "INTEGER",
+      "nullable": true
+    },
+    {
+      "field": "price",
+      "columnName": "price",
+      "columnType": "REAL",
+      "nullable": true
+    }
+  ]
+}
+,
+{
+  "entityClass": "com.mycompany.posswing.model.Customer",
+  "tableName": "customer",
+  "primaryKey": "id",
+  "autoIncrement": true,
+  "fields": [
+    {
+      "field": "id",
+      "columnName": "id",
+      "columnType": "INTEGER",
+      "nullable": false
+    },
+    {
+      "field": "name",
+      "columnName": "name",
+      "columnType": "TEXT",
+      "nullable": false
+    },
+    {
+      "field": "email",
+      "columnName": "email",
+      "columnType": "TEXT",
+      "nullable": true
+    }
+  ]
+}
+]
+
