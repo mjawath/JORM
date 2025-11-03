@@ -194,22 +194,18 @@ public class SqlQueryParser {
      */
     public ParsedSql buildInsertFromMap(String entityName, Map<String, Object> input) {
         EntityMetadata meta = requireMeta(entityName);
-        List<String> colNames = new ArrayList<>();
-        List<Object> params = new ArrayList<>();
+        // ensure PK generation/validation as before
         for (FieldMetadata f : meta.getFields()) {
-            Object val = input.get(f.getFieldName());
-            if (f.isPrimaryKey() && val == null) {
-                val = generateId();
-                input.put(f.getFieldName(), val); // reflect back for caller
+            if (f.isPrimaryKey() && (!input.containsKey(f.getFieldName()) || input.get(f.getFieldName()) == null)) {
+                input.put(f.getFieldName(), generateId());
             }
-            if (val == null && !f.isNullable() && !f.isPrimaryKey()) {
-                throw new IllegalArgumentException("Required field '" + f.getFieldName() + "' is null for entity " + entityName);
+            if (!f.isPrimaryKey() && !f.isNullable() && !input.containsKey(f.getFieldName())) {
+                throw new IllegalArgumentException("Required field '" + f.getFieldName() + "' is missing for entity " + entityName);
             }
-            colNames.add(f.getColumnName());
-            params.add(val);
         }
-        String sql = "INSERT INTO " + meta.getTableName() + " (" + String.join(",", colNames) + ") VALUES (" + repeat("?", colNames.size()) + ")";
-        return new ParsedSql(sql, params);
+        SqlBuilder builder = new SqlBuilder();
+        SqlStatement stmt = builder.buildInsert(meta, meta.getFields(), input);
+        return new ParsedSql(stmt.getSql(), stmt.getParameters());
     }
 
     /**
@@ -217,22 +213,9 @@ public class SqlQueryParser {
      */
     public ParsedSql buildUpdateFromMap(String entityName, Map<String, Object> input) {
         EntityMetadata meta = requireMeta(entityName);
-        FieldMetadata pkField = meta.getFields().stream().filter(FieldMetadata::isPrimaryKey).findFirst().orElse(null);
-        if (pkField == null) throw new IllegalStateException("No primary key defined for entity " + entityName);
-        Object pkValue = input.get(pkField.getFieldName());
-        if (pkValue == null) throw new IllegalArgumentException("Primary key value missing for update of entity " + entityName);
-        List<String> assignments = new ArrayList<>();
-        List<Object> params = new ArrayList<>();
-        for (FieldMetadata f : meta.getFields()) {
-            if (f.isPrimaryKey()) continue;
-            if (!input.containsKey(f.getFieldName())) continue; // skip absent -> partial update
-            assignments.add(f.getColumnName() + "=?");
-            params.add(input.get(f.getFieldName()));
-        }
-        if (assignments.isEmpty()) throw new IllegalArgumentException("No fields provided to update for entity " + entityName);
-        String sql = "UPDATE " + meta.getTableName() + " SET " + String.join(",", assignments) + " WHERE " + pkField.getColumnName() + "=?";
-        params.add(pkValue); // PK last
-        return new ParsedSql(sql, params);
+        SqlBuilder builder = new SqlBuilder();
+        SqlStatement stmt = builder.buildUpdate(meta, meta.getFields(), input);
+        return new ParsedSql(stmt.getSql(), stmt.getParameters());
     }
 
     /**
@@ -240,8 +223,9 @@ public class SqlQueryParser {
      */
     public ParsedSql buildDeleteById(String entityName, Object id) {
         EntityMetadata meta = requireMeta(entityName);
-        String sql = "DELETE FROM " + meta.getTableName() + " WHERE " + meta.getPrimaryKeyColumn() + "=?";
-        return new ParsedSql(sql, Collections.singletonList(id));
+        SqlBuilder builder = new SqlBuilder();
+        SqlStatement stmt = builder.buildDeleteById(meta, id);
+        return new ParsedSql(stmt.getSql(), stmt.getParameters());
     }
 
     /**
@@ -250,6 +234,7 @@ public class SqlQueryParser {
      */
     public ParsedSql buildSelectFromFilters(String entityName, Map<String,Object> filters) {
         EntityMetadata meta = requireMeta(entityName);
+        // simple implementation: build WHERE on equals
         if (filters == null || filters.isEmpty()) {
             return new ParsedSql("SELECT * FROM " + meta.getTableName(), Collections.emptyList());
         }
