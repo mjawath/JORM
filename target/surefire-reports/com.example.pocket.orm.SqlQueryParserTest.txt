@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.example.pocket.orm.SqlQueryParserTest
--------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.247 s -- in com.example.pocket.orm.SqlQueryParserTest
