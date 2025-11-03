@@ -173,20 +173,7 @@ public class SqlQueryParser {
 
     /* ===================== New Map-based Persistence Parsing ===================== */
 
-    /**
-     * Holder for SQL string plus ordered parameter values ready for PreparedStatement binding.
-     */
-    public static class ParsedSql {
-        private final String sql;
-        private final List<Object> parameters;
-
-        public ParsedSql(String sql, List<Object> parameters) {
-            this.sql = sql;
-            this.parameters = parameters;
-        }
-        public String getSql() { return sql; }
-        public List<Object> getParameters() { return parameters; }
-    }
+    // ParsedSql moved to top-level class `ParsedSql` to be shared across executor and builder.
 
     /**
      * Build an INSERT statement and params from a field map keyed by logical field names (not column names).

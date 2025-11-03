@@ -26,7 +26,7 @@ public class SqlQueryParserTest {
         Map<String,Object> data = new HashMap<>();
         data.put("name","Alice");
         data.put("email","a@example.com");
-        SqlQueryParser.ParsedSql ps = parser.buildInsertFromMap("customer", data);
+    ParsedSql ps = parser.buildInsertFromMap("customer", data);
         assertEquals("INSERT INTO customers (id,name,email) VALUES (?,?,?)", ps.getSql());
         assertEquals(3, ps.getParameters().size());
         assertNotNull(data.get("id")); // PK generated
@@ -38,7 +38,7 @@ public class SqlQueryParserTest {
         Map<String,Object> data = new HashMap<>();
         data.put("id","123");
         data.put("name","Bob");
-        SqlQueryParser.ParsedSql ps = parser.buildUpdateFromMap("customer", data);
+    ParsedSql ps = parser.buildUpdateFromMap("customer", data);
         assertEquals("UPDATE customers SET name=? WHERE id=?", ps.getSql());
         assertEquals(Arrays.asList("Bob","123"), ps.getParameters());
     }
@@ -48,7 +48,7 @@ public class SqlQueryParserTest {
         SqlQueryParser parser = createParser();
         Map<String,Object> filters = new HashMap<>();
         filters.put("name","Charlie");
-        SqlQueryParser.ParsedSql ps = parser.buildSelectFromFilters("customer", filters);
+    ParsedSql ps = parser.buildSelectFromFilters("customer", filters);
         assertEquals("SELECT * FROM customers WHERE name=?", ps.getSql());
         assertEquals(List.of("Charlie"), ps.getParameters());
     }
@@ -56,7 +56,7 @@ public class SqlQueryParserTest {
     @Test
     void testDelete() {
         SqlQueryParser parser = createParser();
-        SqlQueryParser.ParsedSql ps = parser.buildDeleteById("customer", "999");
+    ParsedSql ps = parser.buildDeleteById("customer", "999");
         assertEquals("DELETE FROM customers WHERE id=?", ps.getSql());
         assertEquals(List.of("999"), ps.getParameters());
     }
@@ -92,12 +92,12 @@ public class SqlQueryParserTest {
         // nest children under field name 'lineitem'
         orderInput.put("lineitem", children);
 
-        List<SqlQueryParser.ParsedSql> plan = parser.buildInsertPlan("order", orderInput);
+    List<ParsedSql> plan = parser.buildInsertPlan("order", orderInput);
         // first SQL should be order insert
         assertTrue(plan.size() >= 3);
         assertTrue(plan.get(0).getSql().startsWith("INSERT INTO orders"));
         // subsequent SQLs for lineitems and their params should include order id
-        SqlQueryParser.ParsedSql lineInsert = plan.get(1);
+    ParsedSql lineInsert = plan.get(1);
         assertTrue(lineInsert.getSql().startsWith("INSERT INTO lineitems"));
         // The parameters for child should include the propagated order id (second position or depending on metadata order)
         boolean foundOrderId = lineInsert.getParameters().stream().anyMatch(p -> p != null && p.toString().length() > 0);

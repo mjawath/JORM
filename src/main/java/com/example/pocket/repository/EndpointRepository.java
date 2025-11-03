@@ -42,7 +42,18 @@ public class EndpointRepository {
             ps.setString(5, now.toString());
             return ps;
         }, kh);
-        Long id = ((Number) kh.getKeys().get("id")).longValue();
+        // Prefer getKey() which returns the generated key in a driver-independent way.
+        Number key = kh.getKey();
+        Long id;
+        if (key != null) {
+            id = key.longValue();
+        } else if (kh.getKeys() != null && kh.getKeys().get("id") instanceof Number) {
+            id = ((Number) kh.getKeys().get("id")).longValue();
+        } else {
+            // As a last resort, query the last_insert_rowid() for SQLite compatibility
+            Long last = jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
+            id = last;
+        }
         return new EndpointDef(id, method, path, collectionId, now, now);
     }
 
